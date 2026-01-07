@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QWidget, QSizePolicy, QVBoxLayout, QLabel, 
                              QHBoxLayout, QGraphicsDropShadowEffect, QGraphicsEffect, QTextEdit,
                              QGridLayout, QPushButton)
-from PyQt5.QtCore import Qt, QPropertyAnimation, QPointF, QTimer, QDateTime, QDate, pyqtSignal, QUrl
+from PyQt5.QtCore import Qt, QPropertyAnimation, QPointF, QTimer, QDateTime, QDate, pyqtSignal, QUrl, QSize
 from PyQt5.QtGui import QFont, QLinearGradient, QPainter, QBrush, QPen, QColor, QPixmap, QDesktopServices
 from datetime import datetime
 
@@ -15,6 +15,7 @@ class MainWindow(QMainWindow):
         self.setStyleSheet("background-color: #8B0000")
 
         self.initUI()
+        # self.resizeEvent(a0=None)
 
         self.mod_thumbnail_label.clicked.connect(self.open_mod_url)
 
@@ -27,24 +28,31 @@ class MainWindow(QMainWindow):
 
         self.create_mod_title_label()
         main_layout.addWidget(self.mod_title_label, 0, 0, 1, 4)
+        self.mod_title_label.setMaximumSize(1920, 75)
 
         self.create_mod_thumbnail_label()
-        main_layout.addWidget(self.mod_thumbnail_label, 1, 0, 2, 2)
+        main_layout.addWidget(self.mod_thumbnail_label, 1, 0, 2, 2, Qt.AlignCenter)
+        
 
         self.create_mod_rating_label()
-        main_layout.addWidget(self.mod_rating_label, 1, 2, 1, 2)
+        main_layout.addWidget(self.mod_rating_label, 1, 2, 1, 2, Qt.AlignBottom | Qt.AlignCenter)
+        main_layout.setRowStretch(1, 1)
 
         self.create_mod_description_label()
-        main_layout.addWidget(self.mod_description_label, 2, 2, 1, 2)
+        main_layout.addWidget(self.mod_description_label, 2, 2, 1, 2, Qt.AlignCenter)
+        main_layout.setRowStretch(2, 2)
 
         self.create_no_button()
         main_layout.addWidget(self.no_button, 3, 0, 1, 2)
+        
 
         self.create_yes_button()
         main_layout.addWidget(self.yes_button, 3, 2, 1, 2)
 
         self.create_maybe_button()
         main_layout.addWidget(self.maybe_button, 4, 0, 1, 4)
+
+        main_layout.setContentsMargins(250, 0, 250, 0)
 
 
     def create_mod_title_label(self):
@@ -59,9 +67,9 @@ class MainWindow(QMainWindow):
         self.thumbnail = QPixmap("ice_canyon.jpg")
         
         self.mod_thumbnail_label = ClickableQLabel()
-        self.mod_thumbnail_label.setAlignment(Qt.AlignCenter)
+        self.mod_thumbnail_label.setMaximumSize(800, 800)
         self.mod_thumbnail_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.thumbnail.scaled(self.mod_thumbnail_label.height(), self.mod_thumbnail_label.height(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        # self.thumbnail.scaled(self.mod_thumbnail_label.height(), self.mod_thumbnail_label.height(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
         self.mod_thumbnail_label.setPixmap(self.thumbnail)
         self.mod_thumbnail_label.setStyleSheet("""
             ClickableQLabel:hover {
@@ -72,6 +80,7 @@ class MainWindow(QMainWindow):
     def create_mod_rating_label(self):
         """Creates a QLabel() for the rating for each mod."""
         rating_image = QPixmap("4-star.png")
+        rating_image = rating_image.scaled(324, 56, Qt.KeepAspectRatio, Qt.SmoothTransformation)
 
         self.mod_rating_label = QLabel()
         self.mod_rating_label.setPixmap(rating_image)
@@ -84,9 +93,9 @@ class MainWindow(QMainWindow):
 
         self.mod_description_label = QLabel(description)
         self.mod_description_label.setWordWrap(True)
-        self.mod_description_label.setFont(QFont("Chewy", 20, QFont.Medium))
+        self.mod_description_label.setFont(QFont("Chewy", 25, QFont.Medium))
         self.mod_description_label.setStyleSheet("background-color: grey")
-        self.mod_description_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.mod_description_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
     def open_mod_url(self):
         """Opens the current mod's url in your browser."""
@@ -100,23 +109,39 @@ class MainWindow(QMainWindow):
     def create_no_button(self):
         self.no_button = QPushButton("No")
         self.no_button.setStyleSheet("background-color: red")
-        self.no_button.setFont(QFont("Chewy", 15, QFont.Medium))
-        self.no_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.no_button.setFont(QFont("Chewy", 20, QFont.Medium))
+        # self.no_button.setMinimumSize(300, 100)
+        # self.no_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
     def create_yes_button(self):
         self.yes_button = QPushButton("Yes")
         self.yes_button.setStyleSheet("background-color: green")
-        self.yes_button.setFont(QFont("Chewy", 15, QFont.Medium))
-        self.yes_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.yes_button.setFont(QFont("Chewy", 20, QFont.Medium))
+        # self.yes_button.setMinimumSize(300, 100)
+        # self.yes_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
     def create_maybe_button(self):
         self.maybe_button = QPushButton("Maybe")
         self.maybe_button.setStyleSheet("background-color: pink")
-        self.maybe_button.setFont(QFont("Chewy", 15, QFont.Medium))
-        self.maybe_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.maybe_button.setFont(QFont("Chewy", 20, QFont.Medium))
+        # self.maybe_button.setMinimumSize(300, 100)
+        # self.maybe_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
+    def resize_buttons(self):
+        height = self.maybe_button.height()
+        width = self.maybe_button.width()
+
+        self.no_button.setFixedSize(int(width / 2), self.maybe_button.height())
+        self.yes_button.setFixedSize(int(width / 2), self.maybe_button.height())
 
     def resizeEvent(self, a0):
         self.resize_mod_thumbnail()
+        self.resize_buttons()
+
+        print("no button", self.no_button.size())
+        print("yes button", self.yes_button.size())
+        print()
+        
         return super().resizeEvent(a0)
 
 class ClickableQLabel(QLabel):
@@ -129,19 +154,6 @@ class ClickableQLabel(QLabel):
     def mousePressEvent(self, ev):
         self.clicked.emit()
         return super().mousePressEvent(ev)
-        
-
-    # def create_mod_content_layout
-        
-        
-
-
-
-        
-
-
-
-
 
 app = QApplication([])
 window = MainWindow()
