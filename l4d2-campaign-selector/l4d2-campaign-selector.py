@@ -3,7 +3,10 @@ from PyQt5.QtWidgets import (QMainWindow, QApplication, QWidget, QSizePolicy, QV
                              QGridLayout, QPushButton)
 from PyQt5.QtCore import Qt, QPropertyAnimation, QPointF, QTimer, QDateTime, QDate, pyqtSignal, QUrl, QSize
 from PyQt5.QtGui import QFont, QLinearGradient, QPainter, QBrush, QPen, QColor, QPixmap, QDesktopServices
+from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 from datetime import datetime
+# from l4d2_campaign_selector.decide_campaign import ModDecider
+from decide_campaign import ModDecider
 
 # Add a container widget to the thumbnail so that the mod url only open when you click directly on the image and not the borders of the widget
 class MainWindow(QMainWindow):
@@ -14,6 +17,10 @@ class MainWindow(QMainWindow):
         self.initUI() 
 
         self.mod_thumbnail_label.clicked.connect(self.open_mod_url)
+
+        # self.mod_decider = ModDecider()
+
+        # self.set_mod_description_label()
     
     def initUI(self):
         central_widget = QWidget()
@@ -63,10 +70,10 @@ class MainWindow(QMainWindow):
                                                }
                                                """)
 
-        mod_thumbnail = QPixmap("l4d2_campaign_selector/ice_canyon.jpg")
-        mod_thumbnail_size = QSize(int(self.mod_thumbnail_label.width() * 0.85), int(self.mod_thumbnail_label.height() * 0.85))
-        mod_thumbnail = mod_thumbnail.scaled(mod_thumbnail_size, Qt.IgnoreAspectRatio, Qt.FastTransformation)
-        self.mod_thumbnail_label.setPixmap(mod_thumbnail)
+        # mod_thumbnail = QPixmap("l4d2_campaign_selector/ice_canyon.jpg")
+        # mod_thumbnail_size = QSize(int(self.mod_thumbnail_label.width() * 0.85), int(self.mod_thumbnail_label.height() * 0.85))
+        # mod_thumbnail = mod_thumbnail.scaled(mod_thumbnail_size, Qt.IgnoreAspectRatio, Qt.FastTransformation)
+        # self.mod_thumbnail_label.setPixmap(mod_thumbnail)
 
         # mod_thumbnail_container.setFixedSize(self.mod_thumbnail_label.width(), self.mod_thumbnail_label.height())
         
@@ -94,6 +101,7 @@ class MainWindow(QMainWindow):
         main_layout.setRowStretch(1, 1)
 
     def create_mod_description_label(self, main_layout):
+        # self.mod_description_label = QLabel()
         self.mod_description_label = QLabel("\"The road is covered with snow, so the survivors will have to make their way through the icy canyon in search of salvation.\" Hello friends! Last December, I created the \"Ice Canyon\" map for the game Battle Grounds III. I decided to use it as a basis and cr...")
         self.mod_description_label.setFont(QFont("Chewy", 25))
         self.mod_description_label.setAlignment(Qt.AlignTop)
@@ -170,15 +178,21 @@ class MainWindow(QMainWindow):
 
     def resize_mod_thumbnail(self):
         if hasattr(self, "mod_thumbnail_label") == True:
-            mod_thumbnail = QPixmap("l4d2_campaign_selector/ice_canyon.jpg")
-            mod_thumbnail_size = QSize(int(self.mod_thumbnail_label.width() * 0.85), int(self.mod_thumbnail_label.height() * 0.85))
-            mod_thumbnail = mod_thumbnail.scaled(mod_thumbnail_size, Qt.IgnoreAspectRatio, Qt.FastTransformation)
-            self.mod_thumbnail_label.setPixmap(mod_thumbnail)
+            self.set_mod_thumbnail_image()
 
     def resizeEvent(self, a0):
         self.resize_mod_thumbnail()
 
         return super().resizeEvent(a0)
+
+    def set_mod_thumbnail_image(self):
+        mod_thumbnail = QPixmap("l4d2_campaign_selector/ice_canyon.jpg")
+        mod_thumbnail_size = QSize(int(self.mod_thumbnail_label.width() * 0.85), int(self.mod_thumbnail_label.height() * 0.85))
+        mod_thumbnail = mod_thumbnail.scaled(mod_thumbnail_size, Qt.IgnoreAspectRatio, Qt.FastTransformation)
+        self.mod_thumbnail_label.setPixmap(mod_thumbnail)
+
+    # def set_mod_description_label(self):
+    #     self.mod_decider.all_mods
 
 class ClickableQLabel(QLabel):
     def __init__(self, *args, **kwargs):
@@ -195,3 +209,8 @@ app = QApplication([])
 window = MainWindow()
 window.show()
 app.exec()
+
+# manager = QNetworkAccessManager()
+# url = "https://images.steamusercontent.com/ugc/11267625434000555311/D397044B8584358CDE1D1DBB16EFF40B60F8B430/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true"
+# request = QNetworkRequest(url)
+# reply = manager.get(request)
