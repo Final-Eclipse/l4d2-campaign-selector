@@ -1,118 +1,91 @@
 import json
+from unidecode import unidecode
 
 # Get current mod
+
 # If yes is clicked, write that mod to a file for liked mods
+
 # If no is clicked, write that mod to a file for disliked mods
+
 # If maybe is clicked, write that mod to a file for maybe mods
-class ModDecider():
+class ModDisplayLogic():
     def __init__(self):  
         self.liked_mods = []
         self.disliked_mods = []
-        self.all_mods = self.get_all_mods()
-
-        self.current_liked_mods = self.get_liked_mods()
-        self.current_disliked_mods = self.get_disliked_mods()
-
-    def get_all_mods(self):
-        """Returns all mods scraped from the Steam Workshop in JSON format."""
-        with open("left_4_dead_2_scraper/l4d2_mods.json", "r") as file:
-            file_contents = file.read()
-            all_mods = json.loads(file_contents)
-
-        return all_mods
-    
-    def yes_button_pressed(self):
-        # Add mod to liked_mods
-        # Add mod to liked mods text file
-        # Do the same for no button
-        # pass
-        self.liked_mods.append(self.current_mod)
-    
-    def no_button_pressed(self):
-        pass
-        self.disliked_mods.append(self.current_mod)
-
-    def set_mod_likeness(self):
-        for mod_title, mod_details in self.all_mods.items():
-            if mod_title in self.current_liked_mods or mod_title in self.current_disliked_mods:
-                continue
-
-            print(mod_title)
-            decision = input("Type like or dislike. ").lower().strip()
-
-            if decision == "like":
-                self.liked_mods.append(mod_title)
-            elif decision == "dislike":
-                self.disliked_mods.append(mod_title)
-            elif decision == "quit":
-                break
-    
-    def add_liked_mods_to_file(self):
-        with open("l4d2_campaign_selector/l4d2_liked_mods.txt", "r+") as file:
-            file_contents = file.read()
-            print(file_contents)
-            # file.write(str(self.liked_mods))
-
-    def add_disliked_mods_to_file(self):
-        with open("l4d2_campaign_selector/l4d2_disliked_mods.txt", "r+") as file:
-            file_contents = file.read()
-            file.write(str(self.disliked_mods))
-
-    # When adding new mods to file do not overwrite, append
-    # Get file contents
-    # file.write(file_contents + new_contents)
-    def get_liked_mods(self):
-        with open("l4d2_campaign_selector/l4d2_liked_mods.txt", "r") as file:
-            file_contents = file.read()
-
-        file_contents = file_contents.replace("[", "")
-        file_contents = file_contents.replace("]", "")
-        file_contents = file_contents.replace("'", "")
-        file_contents = file_contents.split(", ")
-
-        return file_contents
-
-    def get_disliked_mods(self):
-        with open("l4d2_campaign_selector/l4d2_disliked_mods.txt", "r") as file:
-            file_contents = file.read()
-
-        file_contents = file_contents.replace("[", "")
-        file_contents = file_contents.replace("]", "")
-        file_contents = file_contents.replace("'", "")
-        file_contents = file_contents.split(", ")
-
-        return file_contents
-    
-    def get_current_mod(self):
-        # Rereads the files to get the latest version
-        self.current_liked_mods = self.get_liked_mods()
-        self.current_disliked_mods = self.get_disliked_mods()
-
-        for mod_title in self.all_mods:
-            if mod_title not in self.current_liked_mods and mod_title not in self.current_disliked_mods:
-                self.current_mod = mod_title
-                return self.current_mod
+        self.all_mods_dict = self.get_all_mods_dict()
         
-    # def update_current_mod(self):
-    
+        self.update_current_mod()
+
+        # self.current_liked_mods = self.get_liked_mods()
+        # self.current_disliked_mods = self.get_disliked_mods()
+
+    def update_current_mod(self):
+        """
+        Updates the current mod by iterating through the list of all mods in self.all_mods_dict.
+        If that mod is found in l4d2_liked_mods.txt or l4d2_disliked_mods.txt, it is skipped.
+        This repeats until a mod is found that is in neither of those files.
+        That mod is made the current mod.
+        """
+        with open("l4d2_campaign_selector/filtered_mods\l4d2_liked_mods.txt", "r", encoding="utf-8") as likes_file:
+            likes_file_contents = likes_file.read()
+
+            with open("l4d2_campaign_selector/filtered_mods\l4d2_disliked_mods.txt", "r", encoding="utf-8") as dislikes_file:
+                dislikes_file_contents = dislikes_file.read()
+
+                for mod_title in self.all_mods_dict:
+                    if mod_title not in likes_file_contents and mod_title not in dislikes_file_contents:
+                        self.current_mod = mod_title
+                        return
+        
+        # Will raise an exception if there are no more mods left to display. 
+        # Meaning that all mods have been seen and no or yes have been pressed for them.
+        raise Exception("There are no more mods left.") 
+        
+    def get_all_mods_dict(self):
+        """Converts all mods from JSON to a Python dictionary"""
+        with open("l4d2_campaign_selector/left_4_dead_2_scraper/l4d2_mods.json", "r", encoding="utf-8") as file:
+            file_contents = file.read()
+            all_mods_dict = json.loads(file_contents)
+
+        return all_mods_dict
+
+    def yes_button_clicked(self):
+        """Calls a method to add the current mod to l4d2_liked_mods.txt."""
+        self.add_current_mod_to_liked()
+
+    def no_button_clicked(self):
+        """Calls a method to add the current omd to l4d2_disliked_mods.txt."""
+        self.add_current_mod_to_disliked()
+
+    def maybe_button_clicked(self):
+        pass
+
+    def add_current_mod_to_liked(self):
+        """Adds the current mod to l4d2_liked_mods.txt."""
+        with open("l4d2_campaign_selector/filtered_mods/l4d2_liked_mods.txt", "r+", encoding="utf-8") as likes_file:
+            likes_file.read() # Moves cursor to end of file
+            likes_file.write(self.current_mod + "\n")
+
+    def add_current_mod_to_disliked(self):
+        """Adds the current mod to l4d2_disliked_mods.txt."""
+        with open("l4d2_campaign_selector/filtered_mods/l4d2_disliked_mods.txt", "r+", encoding="utf-8") as dislikes_file:
+            dislikes_file.read() # Moves cursor to end of file
+            dislikes_file.write(self.current_mod + "\n")
+
+    def get_current_mod_details(self):
+        """Returns a tuple where each element relates to a specific detail about the current mod."""
+        mod_title = self.current_mod
+        mod_thumbnail = self.all_mods_dict[mod_title]["mod_thumbnail"]
+        mod_rating = self.all_mods_dict[mod_title]["mod_rating"]
+        mod_url = self.all_mods_dict[mod_title]["mod_url"]
+
+        # Gets the mod description and translates unicode escape sequences into readable text
+        mod_description = self.all_mods_dict[mod_title]["mod_description"]
+        mod_description = mod_description.encode("utf-8")
+        mod_description = mod_description.decode("unicode-escape")
+        
+        return mod_title, mod_thumbnail, mod_rating, mod_url, mod_description
+
 if __name__ == "__main__":
-    x = ModDecider()
-    # x.set_mod_likeness()
-    x.get_current_mod()
-    x.yes_button_pressed()
-    x.add_liked_mods_to_file()
-    x.add_disliked_mods_to_file()
-    
-    print(x.get_current_mod())
-    # x.set_mod_likeness()
-    
-
-    # print(x.get_liked_mods())
-    # print(x.get_disliked_mods())
-
-    # print()
-    # print(x.liked_mods)
-    # print(x.disliked_mods)
-
-
-
+    x = ModDisplayLogic()
+    print(x.get_current_mod_details())
