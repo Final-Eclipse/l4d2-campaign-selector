@@ -5,8 +5,6 @@ from PyQt5.QtCore import Qt, QPropertyAnimation, QPointF, QTimer, QDateTime, QDa
 from PyQt5.QtGui import QFont, QLinearGradient, QPainter, QBrush, QPen, QColor, QPixmap, QDesktopServices
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 from datetime import datetime
-# from l4d2_campaign_selector.decide_campaign import ModDecider
-# from decide_campaign import ModDecider
 from mod_display_logic import ModDisplayLogic
 from left_4_dead_2_scraper.l4d2_scraper import Scraper
 
@@ -14,19 +12,25 @@ from left_4_dead_2_scraper.l4d2_scraper import Scraper
 
 # Add functionality for the maybe button to add it to the maybe text file
 
-# Handle what happens when there are no mods left, go to all mods that were in maybe text file, then 
-# after all mods have been exhausted put a placeholder thumbnail, title, rating, and description
+# Handle what happens when there are no mods left, go to all mods that were in maybe text file and loop through those.  
+# Make sure to delete them from the maybe text file or rewrite the file with that mod gone
+# Make sure to add the mod to liked or disliked text file
+# Then, after all mods have been exhausted put a placeholder thumbnail, title, rating, and description
 
 # Either download all possible rating images (0, 1, 2, 3, 4, 5 stars) and display them based on the 
 # mod's rating url or use requests to get the content of the rating image url and display it (requests 
 # is currently being used, most likely slower than storing images because it has to make requests)
+
+# Instead of writing the name of the mod to the liked and disliked files,
+# Create a dictionary and write in json instead
+
+# Add a "Mods Left" widget to the GUI
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
         self.l4d2_scraper = Scraper()
         self.mod_display_logic = ModDisplayLogic()
-
 
         self.set_window_properties()
         self.initUI() 
@@ -63,10 +67,7 @@ class MainWindow(QMainWindow):
         mod_thumbnail = mod_thumbnail.scaled(mod_thumbnail_size, Qt.KeepAspectRatio, Qt.FastTransformation)
         self.mod_thumbnail_label.setPixmap(mod_thumbnail)
 
-        mod_rating_image = QPixmap()
-        mod_rating_image_url = self.l4d2_scraper.get_mod_rating_image_in_bytes(current_mod_details[2])
-        mod_rating_image.loadFromData(mod_rating_image_url)
-        mod_rating_image = mod_rating_image.scaled(self.mod_thumbnail_label.width(), self.mod_thumbnail_label.height(), Qt.KeepAspectRatio, Qt.FastTransformation)
+        mod_rating_image = self.change_mod_rating_image(current_mod_details[2])
         self.mod_rating_label.setPixmap(mod_rating_image)
 
         self.mod_url = current_mod_details[3]
@@ -212,6 +213,46 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(self.maybe_button, 4, 0, 1, 2)
         main_layout.setRowStretch(4, 1)
 
+    def get_mod_rating_pixmaps(self):
+        """Returns a dictionary of urls for each possible mod rating image."""
+        mod_rating_images = {
+            "not-yet.png": "l4d2_campaign_selector/mod_star_ratings/not-yet.png",
+            "1-star.png": "l4d2_campaign_selector/mod_star_ratings/1-star.png",
+            "2-star.png": "l4d2_campaign_selector/mod_star_ratings/2-star.png",
+            "3-star.png": "l4d2_campaign_selector/mod_star_ratings/3-star.png",
+            "4-star.png": "l4d2_campaign_selector/mod_star_ratings/4-star.png",
+            "5-star.png": "l4d2_campaign_selector/mod_star_ratings/5-star.png"
+        }
+
+        return mod_rating_images
+    
+    def change_mod_rating_image(self, mod_rating_image_url):
+        """
+        Checks the current mod's url for the rating and changes the image on the GUI to it.
+        
+        :param mod_rating_image_url: The url to the mod's rating image.
+        """
+        mod_rating_image = QPixmap()
+        
+        all_mod_rating_images = self.get_mod_rating_pixmaps()
+
+        if "not-yet.png" in mod_rating_image_url:
+            image = all_mod_rating_images["not-yet.png"]
+        elif "1-star.png" in mod_rating_image_url:
+            image = all_mod_rating_images["1-star.png"]
+        elif "2-star.png" in mod_rating_image_url:
+            image = all_mod_rating_images["2-star.png"]
+        elif "3-star.png" in mod_rating_image_url:
+            image = all_mod_rating_images["3-star.png"]
+        elif "4-star.png" in mod_rating_image_url:
+            image = all_mod_rating_images["4-star.png"]
+        elif "5-star.png" in mod_rating_image_url:
+            image = all_mod_rating_images["5-star.png"]
+
+        mod_rating_image.load(image)
+        mod_rating_image = mod_rating_image.scaled(self.mod_thumbnail_label.width(), self.mod_thumbnail_label.height(), Qt.KeepAspectRatio, Qt.FastTransformation)
+        return mod_rating_image
+
     def button_pressed(self):
         """Is called as a slot when a clicked signal is sent from any of the three buttons."""
         match self.sender():
@@ -228,11 +269,19 @@ class MainWindow(QMainWindow):
         QDesktopServices.openUrl(QUrl(self.mod_url))
 
     def resize_mod_thumbnail(self):
-        if hasattr(self, "mod_thumbnail_label") == True:    # Prevents AttributeError when starting application because this runs immediately before self.mod_thumbnail_label is created
+        """Changes the size of the mod's thumbnail when resizing the window."""
+        # Prevents AttributeError when starting application because this method is called 
+        # from self.resizeEvent() before self.mod_thumbnail_label is created in self.initUI()
+        if hasattr(self, "mod_thumbnail_label") == True:    
             self.updateUI()
 
     def resizeEvent(self, a0):
-        QTimer.singleShot(1000, self.resize_mod_thumbnail)  # Resizes widgets after 1 second of resizing the window to prevent lag from resizing all widgets instantly when window size changes
+        """
+        At application start, is called once.
+        After application start, is only called the window is resized.
+        """
+        # Resizes widgets after 1 second of resizing the window to prevent lag from resizing all widgets instantly when window size changes
+        QTimer.singleShot(1000, self.resize_mod_thumbnail)  
 
         return super().resizeEvent(a0)
 
