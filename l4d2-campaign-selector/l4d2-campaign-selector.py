@@ -1,17 +1,9 @@
-from PyQt5.QtWidgets import (QMainWindow, QApplication, QWidget, QSizePolicy, QVBoxLayout, QLabel, 
-                             QHBoxLayout, QGraphicsDropShadowEffect, QGraphicsEffect, QTextEdit,
-                             QGridLayout, QPushButton)
-from PyQt5.QtCore import Qt, QPropertyAnimation, QPointF, QTimer, QDateTime, QDate, pyqtSignal, QUrl, QSize, QTimer
-from PyQt5.QtGui import QFont, QLinearGradient, QPainter, QBrush, QPen, QColor, QPixmap, QDesktopServices
-from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
-from datetime import datetime
+from PyQt5.QtWidgets import QMainWindow, QApplication, QWidget, QSizePolicy, QLabel, QGridLayout, QPushButton
+from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QUrl, QSize, QTimer
+from PyQt5.QtGui import QFont, QPixmap, QDesktopServices
 from mod_display_logic import ModDisplayLogic
 from left_4_dead_2_scraper.l4d2_scraper import Scraper
 
-# Handle what happens when there are no mods left, go to all mods that were in maybe text file and loop through those.  
-# Make sure to delete them from the maybe text file or rewrite the file with that mod gone
-# Make sure to add the mod to liked or disliked text file
-# Then, after all mods have been exhausted put a placeholder thumbnail, title, rating, and description
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -48,10 +40,20 @@ class MainWindow(QMainWindow):
     def updateUI(self):
         """Updates the user interface with new information for every mod."""
         self.mod_display_logic.update_current_mod()
-        current_mod_details = self.mod_display_logic.get_current_mod_details()
+        
+        if self.mod_display_logic.current_mod == "placeholder":
+            current_mod_details = self.set_placeholders()
+        else:
+            current_mod_details = self.mod_display_logic.get_current_mod_details()
+            
+        mod_title = current_mod_details[0]
+        mod_thumbnail_url = current_mod_details[1]
+        mod_rating = current_mod_details[2]
+        mod_url = current_mod_details[3]
+        mod_description = current_mod_details[4]
 
         # Updates the mod's name.
-        self.mod_title_label.setText(current_mod_details[0])
+        self.mod_title_label.setText(mod_title)
 
         # Updates the total number and number of mods left.
         total_number_of_mods = self.mod_display_logic.get_total_number_of_mods()
@@ -60,23 +62,24 @@ class MainWindow(QMainWindow):
 
         # Updates the mod's thumbnail image.
         mod_thumbnail = QPixmap()
-        mod_thumbnail.loadFromData(self.l4d2_scraper.get_mod_thumbnail_image_in_bytes(current_mod_details[1]))
-        mod_thumbnail_size = QSize(int(self.mod_thumbnail_label.width() * 0.85), int(self.mod_thumbnail_label.height() * 0.85))
-        mod_thumbnail = mod_thumbnail.scaled(mod_thumbnail_size, Qt.KeepAspectRatio, Qt.FastTransformation)
+        mod_thumbnail.loadFromData(self.l4d2_scraper.get_mod_thumbnail_image_in_bytes(mod_thumbnail_url))
+        mod_thumbnail_size = QSize(int(self.mod_thumbnail_label.width() * 1), int(self.mod_thumbnail_label.height() * 1))
+        mod_thumbnail = mod_thumbnail.scaled(mod_thumbnail_size, Qt.IgnoreAspectRatio, Qt.FastTransformation)
         self.mod_thumbnail_label.setPixmap(mod_thumbnail)
 
         # Updates the mod's rating image.
-        mod_rating_image = self.change_mod_rating_image(current_mod_details[2])
+        mod_rating_image = self.change_mod_rating_image(mod_rating)
         self.mod_rating_label.setPixmap(mod_rating_image)
 
         # Updates the mod's url.
-        self.mod_url = current_mod_details[3]
+        self.mod_url = mod_url
 
         # Updates the mod's description.
-        self.mod_description_label.setText(current_mod_details[4])
+        self.mod_description_label.setText(mod_description)
     
     def set_window_properties(self):
         """Sets various properties of the application's window."""
+        self.setWindowTitle("Left 4 Dead 2 Campaign Selector")
         self.setMinimumSize(700, 500)
         self.setStyleSheet("background-color: #1E0000")
         self.setContentsMargins(100, 0, 100, 0)
@@ -88,7 +91,7 @@ class MainWindow(QMainWindow):
         
         :param main_layout: The main layout that the entire application is based off of.
         """
-        self.mod_title_label = QLabel("Ice Canyon")
+        self.mod_title_label = QLabel()
         self.mod_title_label.setAlignment(Qt.AlignCenter)
         self.mod_title_label.setFont(QFont("Chewy", 25))
         self.mod_title_label.setStyleSheet("""
@@ -148,7 +151,7 @@ class MainWindow(QMainWindow):
         :param main_layout: The main layout that the entire application is based off of.
         """
         self.mod_description_label = QLabel()
-        self.mod_description_label.setFixedSize(848, 600)
+        self.mod_description_label.setFixedSize(848, 562) # 600
         self.mod_description_label.setFont(QFont("Chewy", 25))
         self.mod_description_label.setAlignment(Qt.AlignTop)
         self.mod_description_label.setWordWrap(True)
@@ -276,6 +279,8 @@ class MainWindow(QMainWindow):
             image = all_mod_rating_images["4-star.png"]
         elif "5-star.png" in mod_rating_image_url:
             image = all_mod_rating_images["5-star.png"]
+        elif "placeholder" in mod_rating_image_url: # Changes the image to placeholder when there are no more mods left.
+            image = "l4d2_campaign_selector/placeholder_images/l4d2_b4b_player_count_comparison.png"
 
         mod_rating_image.load(image)
         mod_rating_image = mod_rating_image.scaled(self.mod_thumbnail_label.width(), self.mod_thumbnail_label.height(), Qt.KeepAspectRatio, Qt.FastTransformation)
@@ -290,16 +295,42 @@ class MainWindow(QMainWindow):
         """
         match self.sender():
             case self.yes_button:
-                self.mod_display_logic.add_current_mod_to_liked()
+                self.mod_display_logic.yes_button_clicked()
             case self.no_button:
-                self.mod_display_logic.add_current_mod_to_disliked()
+                self.mod_display_logic.no_button_clicked()
             case self.maybe_button:
-                self.mod_display_logic.add_current_mod_to_maybe()
+                self.mod_display_logic.maybe_button_clicked()
         self.updateUI()
 
     def open_mod_url(self):
         """Opens the current mod's url in the user's browser."""
         QDesktopServices.openUrl(QUrl(self.mod_url))
+
+    def set_placeholders(self):
+        mod_title = "There are no more mods left."
+        mod_thumbnail_url = "https://imgs.search.brave.com/VhknJ3rE0VcgNcfyT4_MIF1SkBGaUbN86CBW8NHomA8/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9pLnJl/ZGQuaXQvbWFpYmQ3/ZzV2ZWhmMS5wbmc"
+        mod_rating = "placeholder"
+        mod_url = "https://www.reddit.com/r/l4d2/comments/1mj6h42/when_you_know_theres_a_jockey_in_the_map_but_you/"
+        mod_description = """
+But You Can't Prove It, also known as James Doakes Reaction Images, 
+refers to a series of image caption memes using reaction images of 
+Dexter character James Doakes (played by actor Erik King) with 
+determined looks on his face, including an image of him driving a 
+car and an image of him holding a drink in a bar. The memes feature 
+captions about knowing that someone is hiding a secret from you, 
+but you can't prove it, a reference to Doakes, who believes Dexter 
+Morgan is a serial killer but is unable to prove it. The format 
+was popularized online throughout 2025 on sites like TikTok and 
+X / Twitter, first appearing online as early as September 2024 on 
+Reddit.
+        """
+        mod_description = mod_description.replace("\n", "")
+
+        self.no_button.setDisabled(True)
+        self.yes_button.setDisabled(True)
+        self.maybe_button.setDisabled(True)
+
+        return mod_title, mod_thumbnail_url, mod_rating, mod_url, mod_description
 
     def resize_mod_thumbnail(self):
         """Changes the size of the mod's thumbnail when resizing the window."""
