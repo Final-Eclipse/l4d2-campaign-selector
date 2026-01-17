@@ -1,6 +1,6 @@
 from bs4 import BeautifulSoup
 import requests
-from time import sleep
+from time import sleep, time
 from html import unescape
 import json
 from random import randint
@@ -13,34 +13,49 @@ class Scraper():
 
         base_url_page_index = self.base_url.index("p=") + 2
         starting_page = int(self.base_url[base_url_page_index])
-        self.change_page(page_number_to_change_to=starting_page)
+        self.change_page(page_number_to_change_to=starting_page)    # Sets the initial page and scrapes relevant HTML from it
 
         self.mods = {}
         self.all_descriptions = []
 
     def execute_scraper(self) -> None:
         """Starts the scraper."""
+        start_time = time()
         total_number_of_pages = self.get_total_number_of_pages()
 
         base_url_page_index = self.base_url.index("p=") + 2
         starting_page = int(self.base_url[base_url_page_index])
 
-        for page_number in range(starting_page, total_number_of_pages):
+        self.current_page = 0
+
+        for page_number in range(starting_page, total_number_of_pages + 1):
             self.change_page(page_number_to_change_to=page_number)
 
             self.get_mod_details()
             self.get_mod_descriptions()
+            self.save_mods_to_text_file()
+            self.current_page += 1
 
-            # Spam "esc" to end the scraper early
+            # Spam "esc" to end the scraper early.
             if keyboard.is_pressed("esc"):
                 return
+            
+            # Spam "del" to pause the scraper.
+            if keyboard.is_pressed("del"):
+                self.pause_scraper()
 
+            # Small input buffer to prevent too many HTTP requests.
             print(f"Page {page_number} out of {total_number_of_pages} completed!")
+            print("Spam \"esc\" to end the scraper early.")
+            print("Spam \"del\" to pause the scraper.")
             sleep_timer = randint(1, 3)
             print(f"Sleeping for {sleep_timer} seconds.")
             sleep(sleep_timer)
             print(f"Done sleeping for {sleep_timer} seconds.")
             print()
+        
+        end_time = time()
+        print(f"L4D2 Scraper finished in {end_time - start_time}")
 
     def get_mod_details(self) -> None:
         """Gets the title, thumbnail, rating, and url for every mod on the current page."""
@@ -88,8 +103,16 @@ class Scraper():
 
     def save_mods_to_text_file(self) -> None:
         """Saves all the mods in self.mods to a text file."""
+        # Reads the JSON file and combines any previous entries with the new, current one.
+        # Only useful if there are previous entries from prior scraper use.
+        with open("l4d2_campaign_selector/left_4_dead_2_scraper/l4d2_mods.json", "r") as file:
+            file_contents = file.read()
+
+        file_dict = json.loads(file_contents)
+        new_dict = {**file_dict, **self.mods}
+
         with open("l4d2_campaign_selector/left_4_dead_2_scraper/l4d2_mods.json", "w") as file:
-            file.write(json.dumps(self.mods, indent=2))
+            file.write(json.dumps(new_dict, indent=2))
 
     def get_total_number_of_pages(self) -> int:
         """Gets the total number of pages available."""
@@ -130,9 +153,12 @@ class Scraper():
         
         :param response: A response object that is received after sending a get request to the website.
         """
-        if response.status_code != 200:
-            print(f"Failed to reach {self.base_url}")
+        if response.status_code != 200: 
+            print(f"Failed to reach {self.base_url}.")
             print()
+            self.pause_scraper()
+        elif response.ok == True:   # Checks if the HTTP request successfully reached the website.
+            print(f"Successfully reached {self.base_url}.")
 
     def get_mod_thumbnail_image_in_bytes(self, mod_thumbnail_url) -> bytes:
         """
@@ -154,8 +180,14 @@ class Scraper():
         response = response.content
         return response
     
+    def pause_scraper(self):
+        is_paused = input("Type \"resume\" to continue scraper. ").lower().strip()
+        while is_paused != "resume":
+            is_paused = input("Type \"resume\" to continue scraper. ").lower().strip()
+    
 if __name__ == "__main__":
     l4d2_scraper = Scraper()
     l4d2_scraper.execute_scraper()
-    # l4d2_scraper.save_mods_to_text_file() # Uncomment to save mods to file
-    print("Finished scraping all pages.")
+
+    total_number_of_pages = l4d2_scraper.get_total_number_of_pages()
+    print(f"Finished scraping {l4d2_scraper.current_page}/{total_number_of_pages} pages.")
