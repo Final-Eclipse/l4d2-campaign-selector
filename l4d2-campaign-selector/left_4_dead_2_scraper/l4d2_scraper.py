@@ -28,7 +28,7 @@ class Scraper():
 
         self.current_page = 0
 
-        for page_number in range(starting_page, total_number_of_pages + 1):
+        for page_number in range(starting_page, 3 + 1):
             self.change_page(page_number_to_change_to=page_number)
 
             self.get_mod_details()
@@ -55,7 +55,7 @@ class Scraper():
             print()
         
         end_time = time()
-        print(f"L4D2 Scraper finished in {end_time - start_time}")
+        print(f"L4D2 Scraper finished in {end_time - start_time:.2f} seconds.")
 
     def get_mod_details(self) -> None:
         """Gets the title, thumbnail, rating, and url for every mod on the current page."""
